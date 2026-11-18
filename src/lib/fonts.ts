@@ -9,9 +9,9 @@ export interface FontDefinition {
   kind: 'standard' | 'custom'
   /** pdf-lib StandardFonts key. */
   standard?: StandardFonts
-  /** URL of the woff2 asset (public folder). */
+  /** Runtime URL of the woff2 asset in `public/`, base-prefixed. */
   file?: string
-  /** URL of an extended-charset fallback asset. */
+  /** Runtime URL of an extended-charset fallback asset, base-prefixed. */
   fallbackFile?: string
   weight: number
   style: 'normal' | 'italic'
@@ -23,6 +23,23 @@ const COURIER_CSS = '"Courier New", Courier, "Liberation Mono", monospace'
 const ROBOTO_CSS = '"PDFRoboto", Roboto, "Helvetica Neue", Arial, sans-serif'
 const LORA_CSS = '"PDFLora", Lora, Georgia, "Times New Roman", serif'
 
+/**
+ * Runtime URL of a file under `public/`.
+ *
+ * These paths are handed to `fetch()` when a font is embedded, so unlike the
+ * URLs in index.html and index.css the bundler cannot rewrite them — they have
+ * to be prefixed with Vite's base, which is `/<repo>/` on GitHub Pages.
+ */
+function publicAsset(path: string): string {
+  // `import.meta.env` only exists inside Vite; the optional chain keeps this
+  // module importable from plain Node (the self-test bundle).
+  const base = import.meta.env?.BASE_URL || '/'
+  return `${base.endsWith('/') ? base : `${base}/`}${path.replace(/^\/+/, '')}`
+}
+
+/** URL of a bundled font file in `public/fonts/`. */
+const fontFile = (name: string) => publicAsset(`fonts/${name}`)
+
 export const FONTS: FontDefinition[] = [
   { id: 'helvetica', label: 'Helvetica', css: HELVETICA_CSS, kind: 'standard', standard: StandardFonts.Helvetica, weight: 400, style: 'normal' },
   { id: 'helvetica-bold', label: 'Helvetica Bold', css: HELVETICA_CSS, kind: 'standard', standard: StandardFonts.HelveticaBold, weight: 700, style: 'normal' },
@@ -30,13 +47,13 @@ export const FONTS: FontDefinition[] = [
   { id: 'times-bold', label: 'Times New Roman Bold', css: TIMES_CSS, kind: 'standard', standard: StandardFonts.TimesRomanBold, weight: 700, style: 'normal' },
   { id: 'courier', label: 'Courier New', css: COURIER_CSS, kind: 'standard', standard: StandardFonts.Courier, weight: 400, style: 'normal' },
   { id: 'courier-bold', label: 'Courier New Bold', css: COURIER_CSS, kind: 'standard', standard: StandardFonts.CourierBold, weight: 700, style: 'normal' },
-  { id: 'roboto', label: 'Roboto', css: ROBOTO_CSS, kind: 'custom', file: '/fonts/roboto-latin-400-normal.woff2', fallbackFile: '/fonts/roboto-latin-ext-400-normal.woff2', weight: 400, style: 'normal' },
-  { id: 'roboto-bold', label: 'Roboto Bold', css: ROBOTO_CSS, kind: 'custom', file: '/fonts/roboto-latin-700-normal.woff2', fallbackFile: '/fonts/roboto-latin-ext-700-normal.woff2', weight: 700, style: 'normal' },
-  { id: 'roboto-italic', label: 'Roboto Italic', css: ROBOTO_CSS, kind: 'custom', file: '/fonts/roboto-latin-400-italic.woff2', weight: 400, style: 'italic' },
-  { id: 'roboto-bolditalic', label: 'Roboto Bold Italic', css: ROBOTO_CSS, kind: 'custom', file: '/fonts/roboto-latin-700-italic.woff2', weight: 700, style: 'italic' },
-  { id: 'lora', label: 'Lora', css: LORA_CSS, kind: 'custom', file: '/fonts/lora-latin-400-normal.woff2', fallbackFile: '/fonts/lora-latin-ext-400-normal.woff2', weight: 400, style: 'normal' },
-  { id: 'lora-bold', label: 'Lora Bold', css: LORA_CSS, kind: 'custom', file: '/fonts/lora-latin-700-normal.woff2', weight: 700, style: 'normal' },
-  { id: 'lora-italic', label: 'Lora Italic', css: LORA_CSS, kind: 'custom', file: '/fonts/lora-latin-400-italic.woff2', weight: 400, style: 'italic' },
+  { id: 'roboto', label: 'Roboto', css: ROBOTO_CSS, kind: 'custom', file: fontFile('roboto-latin-400-normal.woff2'), fallbackFile: fontFile('roboto-latin-ext-400-normal.woff2'), weight: 400, style: 'normal' },
+  { id: 'roboto-bold', label: 'Roboto Bold', css: ROBOTO_CSS, kind: 'custom', file: fontFile('roboto-latin-700-normal.woff2'), fallbackFile: fontFile('roboto-latin-ext-700-normal.woff2'), weight: 700, style: 'normal' },
+  { id: 'roboto-italic', label: 'Roboto Italic', css: ROBOTO_CSS, kind: 'custom', file: fontFile('roboto-latin-400-italic.woff2'), weight: 400, style: 'italic' },
+  { id: 'roboto-bolditalic', label: 'Roboto Bold Italic', css: ROBOTO_CSS, kind: 'custom', file: fontFile('roboto-latin-700-italic.woff2'), weight: 700, style: 'italic' },
+  { id: 'lora', label: 'Lora', css: LORA_CSS, kind: 'custom', file: fontFile('lora-latin-400-normal.woff2'), fallbackFile: fontFile('lora-latin-ext-400-normal.woff2'), weight: 400, style: 'normal' },
+  { id: 'lora-bold', label: 'Lora Bold', css: LORA_CSS, kind: 'custom', file: fontFile('lora-latin-700-normal.woff2'), weight: 700, style: 'normal' },
+  { id: 'lora-italic', label: 'Lora Italic', css: LORA_CSS, kind: 'custom', file: fontFile('lora-latin-400-italic.woff2'), weight: 400, style: 'italic' },
 ]
 
 const FONT_MAP = new Map(FONTS.map((f) => [f.id, f]))
