@@ -1,0 +1,192 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Self hosted PDF fonts (also embedded into exported documents). */
+@font-face {
+  font-family: 'PDFRoboto';
+  src: url('/fonts/roboto-latin-400-normal.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'PDFRoboto';
+  src: url('/fonts/roboto-latin-400-italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'PDFRoboto';
+  src: url('/fonts/roboto-latin-700-normal.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'PDFRoboto';
+  src: url('/fonts/roboto-latin-700-italic.woff2') format('woff2');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'PDFLora';
+  src: url('/fonts/lora-latin-400-normal.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'PDFLora';
+  src: url('/fonts/lora-latin-400-italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'PDFLora';
+  src: url('/fonts/lora-latin-700-normal.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-ink-50 text-ink-900 antialiased;
+    margin: 0;
+    font-family: theme('fontFamily.sans');
+    overscroll-behavior: none;
+  }
+  html.dark body {
+    @apply bg-ink-950 text-ink-100;
+  }
+  ::selection {
+    @apply bg-indigo-500/30;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium
+           transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-40;
+  }
+  .btn-ghost {
+    @apply btn text-ink-600 hover:bg-ink-200/70 hover:text-ink-900 dark:text-ink-300 dark:hover:bg-white/10 dark:hover:text-white;
+  }
+  .btn-soft {
+    @apply btn bg-ink-200/70 text-ink-800 hover:bg-ink-300/70 dark:bg-white/10 dark:text-ink-100 dark:hover:bg-white/15;
+  }
+  .btn-primary {
+    @apply btn bg-indigo-600 text-white shadow-sm hover:bg-indigo-500 active:bg-indigo-700;
+  }
+  .btn-outline {
+    @apply btn border border-ink-300 text-ink-700 hover:bg-ink-100 dark:border-white/15 dark:text-ink-200 dark:hover:bg-white/10;
+  }
+  .btn-danger {
+    @apply btn bg-rose-600 text-white hover:bg-rose-500;
+  }
+  .icon-btn {
+    @apply inline-flex h-8 w-8 items-center justify-center rounded-lg text-ink-600 transition-colors
+           hover:bg-ink-200/70 hover:text-ink-900 disabled:cursor-not-allowed disabled:opacity-40
+           dark:text-ink-300 dark:hover:bg-white/10 dark:hover:text-white;
+  }
+  .panel {
+    @apply border-ink-200 bg-white dark:border-white/10 dark:bg-ink-900;
+  }
+  .input {
+    @apply w-full rounded-lg border border-ink-300 bg-white px-2.5 py-1.5 text-sm text-ink-900
+           placeholder:text-ink-400 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/25
+           dark:border-white/15 dark:bg-white/5 dark:text-ink-100 dark:placeholder:text-ink-500;
+  }
+  .label {
+    @apply mb-1 block text-xs font-medium uppercase tracking-wide text-ink-500 dark:text-ink-400;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium;
+  }
+  .tooltip {
+    @apply pointer-events-none absolute z-50 whitespace-nowrap rounded-md bg-ink-900 px-2 py-1 text-xs
+           text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 dark:bg-white/15 dark:text-white;
+  }
+  .scroll-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(148 163 184 / 0.5) transparent;
+  }
+  .scroll-thin::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  .scroll-thin::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-ink-300 dark:bg-white/15;
+    background-clip: padding-box;
+    border: 3px solid transparent;
+  }
+  .scroll-thin::-webkit-scrollbar-thumb:hover {
+    @apply bg-ink-400 dark:bg-white/25;
+  }
+}
+
+/* Range inputs ------------------------------------------------------ */
+input[type='range'] {
+  @apply h-1.5 w-full cursor-pointer appearance-none rounded-full bg-ink-200 dark:bg-white/15;
+}
+input[type='range']::-webkit-slider-thumb {
+  @apply h-3.5 w-3.5 appearance-none rounded-full bg-indigo-600 shadow ring-2 ring-white dark:ring-ink-900;
+}
+input[type='range']::-moz-range-thumb {
+  @apply h-3.5 w-3.5 rounded-full border-0 bg-indigo-600 shadow;
+}
+
+input[type='color'] {
+  @apply h-8 w-8 cursor-pointer rounded-lg border border-ink-300 bg-transparent p-0.5 dark:border-white/15;
+}
+input[type='color']::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+input[type='color']::-webkit-color-swatch {
+  @apply rounded-md border-0;
+}
+
+/* Checkboxes -------------------------------------------------------- */
+input[type='checkbox'] {
+  @apply h-4 w-4 cursor-pointer rounded border-ink-300 text-indigo-600 focus:ring-2 focus:ring-indigo-500/30
+         dark:border-white/20 dark:bg-white/10;
+}
+
+/* Page canvas ------------------------------------------------------- */
+.pdf-page-shadow {
+  box-shadow:
+    0 0 0 1px rgb(15 23 42 / 0.08),
+    0 10px 30px -12px rgb(15 23 42 / 0.35);
+}
+html.dark .pdf-page-shadow {
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.08),
+    0 10px 34px -12px rgb(0 0 0 / 0.8);
+}
+
+.text-editor-input {
+  @apply w-full resize-none rounded-lg border border-indigo-500/60 bg-white/95 p-2 text-sm shadow-lg
+         outline-none ring-2 ring-indigo-500/20 backdrop-blur dark:bg-ink-900/95 dark:text-ink-50;
+}
+
+.dragging-page {
+  @apply opacity-40;
+}
+.drop-target {
+  @apply ring-2 ring-indigo-500;
+}
