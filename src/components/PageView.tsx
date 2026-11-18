@@ -672,7 +672,10 @@ export default function PageView({ page, index, scale, pending, onPlaced }: Page
         <canvas ref={canvasRef} className="block bg-white" />
         <canvas ref={overlayRef} className="pointer-events-none absolute left-0 top-0" />
 
-        {selectionBox && selected && (
+        {/* While a text annotation is being edited, the TextEditor itself is
+            the selection box (same border, same place), so the outline and
+            handles are hidden to avoid a second overlapping box. */}
+        {selectionBox && selected && !editingState && (
           <div
             className="pointer-events-none absolute border border-indigo-500"
             style={selectionBox}
@@ -703,10 +706,11 @@ export default function PageView({ page, index, scale, pending, onPlaced }: Page
           </div>
         )}
 
-        {editable && editingState && (
+        {editable && editingState && selectionBox && (
           <TextEditor
             annotation={editable}
             viewport={viewport}
+            selectionBox={selectionBox}
             value={editingState.value}
             onChange={(value) => {
               setEditing({ ...editingState, value })
@@ -906,27 +910,33 @@ function resizeAnnotation(
 function TextEditor({
   annotation,
   viewport,
+  selectionBox,
   value,
   onChange,
   onClose,
 }: {
   annotation: Extract<Annotation, { kind: 'text' }>
   viewport: ViewportLike
+  selectionBox: { left: number; top: number; width: number; height: number }
   value: string
   onChange: (value: string) => void
   onClose: (commit: boolean) => void
 }) {
   const ref = useRef<HTMLTextAreaElement>(null)
   const def = getFont(annotation.font)
-  const [px, py] = userToCanvas(viewport, annotation.x, annotation.y)
   const size = annotation.fontSize * viewport.scale
-  const width = Math.max(220, size * 9)
 
-  // The editor lives inside the page's `overflow-hidden` container, so keep
-  // it fully inside the page: otherwise a box placed near the top or right
-  // edge is clipped and looks like nothing happened.
-  const left = Math.min(px, Math.max(0, viewport.width - width))
-  const top = Math.max(py - size * 1.2, 0)
+  // The editor IS the selection box: same position and size, with the
+  // indigo outline, so there is a single box rather than a selection box
+  // plus a separate typing box. A small minimum keeps an empty box visible
+  // and clickable.
+  const width = Math.max(selectionBox.width, 60)
+  const minHeight = Math.max(selectionBox.height, size * 1.25)
+
+  // Keep the box fully inside the page's `overflow-hidden` container so a
+  // box placed near the top or right edge isn't clipped.
+  const left = Math.min(selectionBox.left, Math.max(0, viewport.width - width))
+  const top = Math.max(selectionBox.top, 0)
 
   useEffect(() => {
     ref.current?.focus()
@@ -947,7 +957,7 @@ function TextEditor({
         className="text-editor-input"
         style={{
           width,
-          minHeight: Math.max(30, size * 1.5),
+          minHeight,
           fontFamily: def.css,
           fontSize: size,
           fontWeight: def.weight,

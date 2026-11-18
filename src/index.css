@@ -180,10 +180,11 @@ html.dark .pdf-page-shadow {
 }
 
 .text-editor-input {
-  /* No visible box at all. The selection outline drawn around the annotation
-     is the only visible boundary; this textarea is an invisible typing
-     surface so the page and that outline show through unchanged. */
-  @apply w-full resize-none bg-transparent p-2 text-sm outline-none;
+  /* The textarea IS the selection box: same indigo outline, transparent
+     background so the page shows through. No padding, so the typed text
+     sits where the annotation's text is drawn on the page. */
+  @apply w-full resize-none bg-transparent p-0 text-sm outline-none
+         border border-indigo-500 focus:ring-2 focus:ring-indigo-500/30;
 }
 
 .dragging-page {

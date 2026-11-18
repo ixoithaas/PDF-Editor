@@ -1,6 +1,7 @@
 import type { Annotation, Point, Rect } from '../types'
 import { getFont } from './fonts'
 import { degToRad } from './geometry'
+import { measureTextWidth } from './textMeasure'
 import type { ViewportLike } from './viewport'
 
 /**
@@ -362,7 +363,7 @@ function drawText(
   ctx: CanvasRenderingContext2D,
   viewport: ViewportLike,
   annotation: Extract<Annotation, { kind: 'text' }>,
-  selected: boolean,
+  _selected: boolean,
   pageRotation: number,
   dpr: number,
 ) {
@@ -392,17 +393,10 @@ function drawText(
     ctx.translate(px, py)
     ctx.rotate(theta)
     ctx.fillText(line, 0, 0)
-    if (selected) {
-      const width = ctx.measureText(line).width
-      ctx.globalAlpha = 1
-      ctx.strokeStyle = SELECT_COLOR
-      ctx.lineWidth = 1.2
-      ctx.setLineDash([4, 3])
-      const align =
-        annotation.align === 'center' ? -width / 2 : annotation.align === 'right' ? -width : 0
-      ctx.strokeRect(align, -size * viewport.scale * 0.85, width, size * viewport.scale * 1.05)
-      ctx.setLineDash([])
-    }
+    // Note: no per-line selection outline is drawn here. The single selection
+    // box is the DOM element rendered by PageView, so text has one outline
+    // (and that same box is the inline editor while editing) rather than a
+    // canvas rect on top of the DOM box.
     ctx.restore()
     cursorX += lineHeight * downX
     cursorY += lineHeight * downY
@@ -625,12 +619,18 @@ export function annotationBounds(annotation: Annotation): Rect | null {
     }
     case 'text': {
       const size = annotation.fontSize
-      const width = size * Math.max(1, longestLine(annotation.text)) * 0.6
+      // Measure the real widest line so the selection box fits the text
+      // instead of over-estimating from a character count.
+      const def = getFont(annotation.font)
+      const width = Math.max(size, measureTextWidth(def, size, annotation.text))
+      const lineCount = Math.max(1, annotation.text.split(/\r\n|\r|\n/).length)
+      // Top sits at the text's ascent (baseline - 0.85·size), matching the
+      // per-line outline the canvas draws, so the box hugs the glyphs.
       return {
         x: annotation.x,
-        y: annotation.y - size * 0.2,
+        y: annotation.y - size * 0.85,
         width,
-        height: size * 1.25 * Math.max(1, annotation.text.split('\n').length),
+        height: size * 1.25 * lineCount,
       }
     }
     case 'stamp':
@@ -643,10 +643,6 @@ export function annotationBounds(annotation: Annotation): Rect | null {
     default:
       return null
   }
-}
-
-function longestLine(text: string): number {
-  return text.split(/\r\n|\r|\n/).reduce((max, line) => Math.max(max, line.length), 1)
 }
 
 export function hitTest(
