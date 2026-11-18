@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Eraser, Type, Check, X, PenLine } from 'lucide-react'
+import { useEditor } from '../lib/store'
 import { getFont } from '../lib/fonts'
 import { FONTS } from '../lib/fonts'
 
@@ -17,6 +18,7 @@ export default function SignaturePad({
   const [mode, setMode] = useState<'draw' | 'type'>('draw')
   const [text, setText] = useState('')
   const [fontId, setFontId] = useState('lora-italic')
+  const [hasInk, setHasInk] = useState(false)
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -40,6 +42,7 @@ export default function SignaturePad({
     const canvas = canvasRef.current!
     canvas.setPointerCapture(event.pointerId)
     drawingRef.current = true
+    setHasInk(true)
     const ctx = canvas.getContext('2d')!
     const p = pointFrom(event)
     ctx.beginPath()
@@ -69,6 +72,7 @@ export default function SignaturePad({
     if (!ctx) return
     ctx.fillStyle = '#ffffff'
     ctx.fillRect(0, 0, canvas.width, canvas.height)
+    setHasInk(false)
   }
 
   const renderTyped = (): string | null => {
@@ -137,15 +141,24 @@ export default function SignaturePad({
     return { src: out.toDataURL('image/png'), width: out.width, height: out.height }
   }
 
+  // Guard against a blank submission instead of closing silently.
+  const canSubmit = mode === 'type' ? text.trim().length > 0 : hasInk
+
   const submit = () => {
     if (mode === 'type') {
       const src = renderTyped()
-      if (!src) return
+      if (!src) {
+        useEditor.getState().showToast('Type your name first.', 'info')
+        return
+      }
       onDone(src, 600, 180)
       return
     }
     const result = exportDrawn()
-    if (!result) return
+    if (!result) {
+      useEditor.getState().showToast('Draw your signature first.', 'info')
+      return
+    }
     onDone(result.src, result.width, result.height)
   }
 
@@ -242,7 +255,7 @@ export default function SignaturePad({
           <button className="btn-outline" onClick={onCancel}>
             Cancel
           </button>
-          <button className="btn-primary" onClick={submit}>
+          <button className="btn-primary" onClick={submit} disabled={!canSubmit}>
             <Check className="h-4 w-4" />
             Use signature
           </button>

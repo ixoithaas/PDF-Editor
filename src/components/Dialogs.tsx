@@ -519,6 +519,7 @@ const SHORTCUTS: { group: string; items: [string, string][] }[] = [
       ['V', 'Select & move'],
       ['H', 'Pan'],
       ['T', 'Text box'],
+      ['M', 'Highlight'],
       ['U', 'Underline'],
       ['S', 'Strike out'],
       ['P', 'Freehand draw'],
@@ -527,6 +528,9 @@ const SHORTCUTS: { group: string; items: [string, string][] }[] = [
       ['O', 'Ellipse'],
       ['L', 'Line'],
       ['A', 'Arrow'],
+      ['I', 'Image'],
+      ['G', 'Signature'],
+      ['B', 'Stamp'],
     ],
   },
   {

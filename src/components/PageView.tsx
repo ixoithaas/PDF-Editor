@@ -28,6 +28,14 @@ import type {
   ToolStyle,
 } from '../types'
 
+/** State of the inline text editor. */
+interface EditingState {
+  id: string
+  value: string
+  /** What the annotation held before editing started, restored by Esc. */
+  initial: string
+}
+
 export interface PendingInsert {
   kind: 'image' | 'signature' | 'stamp'
   src?: string
@@ -77,9 +85,9 @@ export default function PageView({ page, index, scale, pending, onPlaced }: Page
   const setSelection = useEditor((s) => s.setSelection)
   const addAnnotation = useEditor((s) => s.addAnnotation)
   const patchAnnotation = useEditor((s) => s.patchAnnotation)
-  const updateAnnotation = useEditor((s) => s.updateAnnotation)
   const removeAnnotation = useEditor((s) => s.removeAnnotation)
   const beginHistory = useEditor((s) => s.beginHistory)
+  const showToast = useEditor((s) => s.showToast)
 
   const pageAnnotations = useMemo(
     () => annotations.filter((a) => a.pageId === page.id),
@@ -90,7 +98,7 @@ export default function PageView({ page, index, scale, pending, onPlaced }: Page
   const [pdfPage, setPdfPage] = useState<PDFPageProxy | null>(null)
   const [textItems, setTextItems] = useState<TextItemGeometry[]>([])
   const [draft, setDraft] = useState<DraftShape | null>(null)
-  const [editing, setEditing] = useState<{ id: string; value: string } | null>(null)
+  const [editing, setEditing] = useState<EditingState | null>(null)
   const [imageTick, setImageTick] = useState(0)
 
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -317,7 +325,7 @@ export default function PageView({ page, index, scale, pending, onPlaced }: Page
       }
       addAnnotation(annotation)
       setSelection(annotation.id)
-      setEditing({ id: annotation.id, value: '' })
+      setEditing({ id: annotation.id, value: '', initial: '' })
       return
     }
 
@@ -497,6 +505,13 @@ export default function PageView({ page, index, scale, pending, onPlaced }: Page
           opacity: style.opacity,
           createdAt: Date.now(),
         } as Annotation)
+      } else {
+        showToast(
+          textItems.length
+            ? 'No text in that area — drag across the words you want to mark.'
+            : 'This page has no selectable text yet.',
+          'info',
+        )
       }
       return
     }
@@ -609,6 +624,7 @@ export default function PageView({ page, index, scale, pending, onPlaced }: Page
   }
 
   const editable = selected?.kind === 'text' ? selected : null
+  const editingState = editing && editable && editing.id === editable.id ? editing : null
 
   const cursor =
     tool === 'hand'
@@ -638,7 +654,8 @@ export default function PageView({ page, index, scale, pending, onPlaced }: Page
           const hit = hitTest(pageAnnotations, toUser(event), tolerance())
           if (hit?.kind !== 'text') return
           setSelection(hit.id)
-          setEditing({ id: hit.id, value: hit.text })
+          beginHistory()
+          setEditing({ id: hit.id, value: hit.text, initial: hit.text })
         }}
       >
         <canvas ref={canvasRef} className="block bg-white" />
@@ -675,21 +692,28 @@ export default function PageView({ page, index, scale, pending, onPlaced }: Page
           </div>
         )}
 
-        {editable && editing?.id === editable.id && (
+        {editable && editingState && (
           <TextEditor
             annotation={editable}
             viewport={viewport}
-            value={editing.value}
-            onChange={(value) => setEditing({ id: editable.id, value })}
+            value={editingState.value}
+            onChange={(value) => {
+              setEditing({ ...editingState, value })
+              // Write through so the text appears on the page as you type.
+              patchAnnotation(editable.id, { text: value })
+            }}
             onClose={(commit) => {
-              const value = editing.value
+              const current = editingState
               setEditing(null)
-              if (commit) {
-                if (!value.trim()) removeAnnotation(editable.id)
-                else updateAnnotation(editable.id, { text: value } as Partial<Annotation>)
-              } else if (!editable.text.trim()) {
-                removeAnnotation(editable.id)
+              if (!commit) {
+                // Esc restores whatever the box held before editing began.
+                if (current.initial) patchAnnotation(current.id, { text: current.initial })
+                else removeAnnotation(current.id)
+                return
               }
+              // Text was already written while typing; discard an empty box
+              // instead of leaving invisible clutter on the page.
+              if (!current.value.trim()) removeAnnotation(current.id)
             }}
           />
         )}
@@ -881,46 +905,58 @@ function TextEditor({
   const ref = useRef<HTMLTextAreaElement>(null)
   const def = getFont(annotation.font)
   const [px, py] = userToCanvas(viewport, annotation.x, annotation.y)
+  const size = annotation.fontSize * viewport.scale
+  const width = Math.max(220, size * 9)
 
   useEffect(() => {
     ref.current?.focus()
   }, [])
 
-  const size = annotation.fontSize * viewport.scale
+  // Grow with the content so long paragraphs stay comfortable to edit.
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${el.scrollHeight}px`
+  }, [value, size])
 
   return (
-    <textarea
-      ref={ref}
-      className="text-editor-input absolute z-20"
-      style={{
-        left: px,
-        top: py - size * 1.15,
-        minWidth: 120,
-        minHeight: size * 1.4,
-        fontFamily: def.css,
-        fontSize: size,
-        fontWeight: def.weight,
-        fontStyle: def.style,
-        color: annotation.color,
-        textAlign: annotation.align,
-        lineHeight: 1.25,
-      }}
-      value={value}
-      placeholder="Type here…"
-      onChange={(e) => onChange(e.target.value)}
-      onBlur={() => onClose(true)}
-      onKeyDown={(e) => {
-        if (e.key === 'Escape') {
-          e.preventDefault()
-          onClose(false)
-        }
-        if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-          e.preventDefault()
-          onClose(true)
-        }
-        e.stopPropagation()
-      }}
-      onPointerDown={(e) => e.stopPropagation()}
-    />
+    <div className="absolute z-20" style={{ left: px, top: py - size * 1.2 }}>
+      <textarea
+        ref={ref}
+        className="text-editor-input"
+        style={{
+          width,
+          minHeight: Math.max(30, size * 1.5),
+          fontFamily: def.css,
+          fontSize: size,
+          fontWeight: def.weight,
+          fontStyle: def.style,
+          color: annotation.color,
+          textAlign: annotation.align,
+          lineHeight: 1.25,
+        }}
+        value={value}
+        placeholder="Type here…"
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={() => onClose(true)}
+        onKeyDown={(e) => {
+          e.stopPropagation()
+          if (e.key === 'Escape') {
+            e.preventDefault()
+            onClose(false)
+            return
+          }
+          if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+            e.preventDefault()
+            onClose(true)
+          }
+        }}
+        onPointerDown={(e) => e.stopPropagation()}
+      />
+      <div className="mt-1 w-fit whitespace-nowrap rounded bg-ink-900/90 px-1.5 py-0.5 text-[10px] font-medium text-white shadow dark:bg-white/90 dark:text-ink-900">
+        {value.trim() ? 'Click away to finish' : 'Click away to cancel'} · Esc to discard
+      </div>
+    </div>
   )
 }

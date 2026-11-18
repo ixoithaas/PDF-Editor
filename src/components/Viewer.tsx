@@ -303,6 +303,7 @@ export default function Viewer() {
   }, [tool])
 
   const showInsertBar = tool === 'image' || tool === 'signature' || tool === 'stamp'
+  const activeTool = TOOL_MAP.get(tool)
 
   return (
     <main className="relative flex min-w-0 flex-1 flex-col bg-ink-100 dark:bg-ink-950">
@@ -347,6 +348,22 @@ export default function Viewer() {
           }
           onClear={() => setPending(null)}
         />
+      )}
+
+      {activeTool && tool !== 'select' && !showInsertBar && (
+        <div className="flex items-center gap-2 border-b border-ink-200 bg-indigo-50/80 px-3 py-1.5 text-xs dark:border-white/10 dark:bg-indigo-500/10">
+          <activeTool.icon className="h-3.5 w-3.5 shrink-0 text-indigo-600 dark:text-indigo-300" />
+          <span className="font-semibold text-indigo-900 dark:text-indigo-100">
+            {activeTool.label}
+          </span>
+          <span className="text-indigo-800/80 dark:text-indigo-200/80">{activeTool.hint}</span>
+          <button
+            className="ml-auto shrink-0 rounded px-1.5 py-0.5 text-indigo-700 hover:bg-indigo-500/10 dark:text-indigo-300"
+            onClick={() => setTool('select')}
+          >
+            Done
+          </button>
+        </div>
       )}
 
       {searchOpen && <SearchBar onClose={() => setSearchOpen(false)} />}
