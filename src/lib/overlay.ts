@@ -536,6 +536,28 @@ function drawSearchRects(
 }
 
 /* ------------------------------------------------------------------ *
+ * Redraw bookkeeping
+ * ------------------------------------------------------------------ */
+
+const revisions = new WeakMap<object, number>()
+let revisionCounter = 0
+
+/**
+ * Every mutation in the editor produces a new object, so a monotonic revision
+ * per object identity lets a page skip redrawing when none of *its*
+ * annotations changed — important for long documents, where every page
+ * subscribes to the shared annotation list.
+ */
+export function revisionOf(value: object): number {
+  let revision = revisions.get(value)
+  if (revision === undefined) {
+    revision = ++revisionCounter
+    revisions.set(value, revision)
+  }
+  return revision
+}
+
+/* ------------------------------------------------------------------ *
  * Hit testing
  * ------------------------------------------------------------------ */
 

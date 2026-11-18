@@ -25,34 +25,29 @@ import { ANNOTATION_LABELS } from '../lib/annotationMeta'
 const thumbCache = new Map<string, string>()
 
 function useThumbnail(page: PageModel, width = 132) {
-  const [src, setSrc] = useState<string | null>(
-    () => thumbCache.get(page.id) ?? null,
-  )
+  const rotation = finalRotation(page)
+  const key = `${page.id}:${rotation}`
+  const [src, setSrc] = useState<string | null>(() => thumbCache.get(key) ?? null)
   const sources = useEditor((s) => s.sources)
   const pdfjsDocs = useEditor((s) => s.pdfjsDocs)
 
   useEffect(() => {
     let cancelled = false
-    const cached = thumbCache.get(page.id)
+    const cached = thumbCache.get(key)
     if (cached) {
       setSrc(cached)
       return
     }
-    const source = sources.find((s) => s.id === page.sourceId)
     const doc = pdfjsDocs[page.sourceId]
-    if (!source || !doc || page.blank) {
+    if (!doc || page.blank) {
       setSrc(null)
       return
     }
     const run = async () => {
       try {
         const pdfPage = await doc.getPage(page.sourceIndex + 1)
-        const base = pdfPage.getViewport({ scale: 1, rotation: finalRotation(page) })
-        const scale = width / base.width
-        const viewport = pdfPage.getViewport({
-          scale,
-          rotation: finalRotation(page),
-        })
+        const base = pdfPage.getViewport({ scale: 1, rotation })
+        const viewport = pdfPage.getViewport({ scale: width / base.width, rotation })
         const canvas = document.createElement('canvas')
         canvas.width = Math.ceil(viewport.width)
         canvas.height = Math.ceil(viewport.height)
@@ -60,7 +55,7 @@ function useThumbnail(page: PageModel, width = 132) {
         if (!context) return
         await pdfPage.render({ canvasContext: context, viewport }).promise
         const url = canvas.toDataURL('image/jpeg', 0.72)
-        thumbCache.set(page.id, url)
+        thumbCache.set(key, url)
         if (!cancelled) setSrc(url)
       } catch {
         if (!cancelled) setSrc(null)
@@ -70,7 +65,7 @@ function useThumbnail(page: PageModel, width = 132) {
     return () => {
       cancelled = true
     }
-  }, [page, sources, pdfjsDocs, width])
+  }, [page, key, rotation, sources, pdfjsDocs, width])
 
   return src
 }

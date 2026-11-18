@@ -9,6 +9,7 @@ import {
   canvasToUser,
   hitTest,
   renderOverlay,
+  revisionOf,
   userToCanvas,
   type DraftShape,
   type ViewportLike,
@@ -90,7 +91,7 @@ export default function PageView({ page, index, scale, pending, onPlaced }: Page
   const [textItems, setTextItems] = useState<TextItemGeometry[]>([])
   const [draft, setDraft] = useState<DraftShape | null>(null)
   const [editing, setEditing] = useState<{ id: string; value: string } | null>(null)
-  const [, forceRender] = useState(0)
+  const [imageTick, setImageTick] = useState(0)
 
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const overlayRef = useRef<HTMLCanvasElement>(null)
@@ -149,7 +150,8 @@ export default function PageView({ page, index, scale, pending, onPlaced }: Page
 
   /* ---- images --------------------------------------------------- */
   useEffect(() => {
-    const unsubscribe = onImageLoaded(() => forceRender((n) => n + 1))
+    // Repaint once an annotation image finishes decoding.
+    const unsubscribe = onImageLoaded(() => setImageTick((n) => n + 1))
     return () => {
       unsubscribe()
     }
@@ -199,6 +201,20 @@ export default function PageView({ page, index, scale, pending, onPlaced }: Page
     }
   }, [pdfPage, viewport.width, viewport.height, scale, rotation, dpr])
 
+  /**
+   * A cheap fingerprint of everything the overlay depends on.  Annotations
+   * are compared by object identity (see `annotationRevision`) so editing one
+   * page does not force every other page to repaint.
+   */
+  const overlayKey = useMemo(() => {
+    let key = `${Math.round(viewport.width)}x${Math.round(viewport.height)}|${rotation}|${
+      selection ?? '-'
+    }|${draft ? revisionOf(draft) : '-'}|${imageTick}`
+    for (const annotation of pageAnnotations) key += `,${revisionOf(annotation)}`
+    if (searchRects) for (const entry of searchRects) key += `,${entry.id}:${entry.active ? 1 : 0}`
+    return key
+  }, [viewport, rotation, selection, draft, pageAnnotations, searchRects, imageTick])
+
   /* ---- render the annotation overlay ---------------------------- */
   useEffect(() => {
     const canvas = overlayRef.current
@@ -223,7 +239,8 @@ export default function PageView({ page, index, scale, pending, onPlaced }: Page
       draft,
       searchRects,
     })
-  }, [viewport, pageAnnotations, selection, rotation, dpr, draft, searchRects])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewport, overlayKey, dpr])
 
   /* ---- pointer helpers ------------------------------------------ */
   const toUser = useCallback(
