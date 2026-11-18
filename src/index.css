@@ -180,8 +180,10 @@ html.dark .pdf-page-shadow {
 }
 
 .text-editor-input {
-  @apply w-full resize-none rounded-lg border border-indigo-500/60 bg-white/95 p-2 text-sm shadow-lg
-         outline-none ring-2 ring-indigo-500/20 backdrop-blur dark:bg-ink-900/95 dark:text-ink-50;
+  /* Transparent box with a blue dashed border — no filled background, so the
+     page shows through while typing. */
+  @apply w-full resize-none rounded-lg border-2 border-dashed border-indigo-500 bg-transparent p-2 text-sm
+         outline-none ring-2 ring-indigo-500/20;
 }
 
 .dragging-page {
