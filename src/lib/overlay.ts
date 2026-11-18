@@ -23,6 +23,15 @@ export interface OverlayOptions {
   draft?: DraftShape | null
   /** Search results to highlight on this page. */
   searchRects?: { id: string; rect: Rect; active: boolean }[]
+  /**
+   * Text annotation currently being edited inline. Its text is drawn on the
+   * canvas as usual, but while the inline editor is open that same text is
+   * rendered by the editor's own textarea on top — drawing both would show
+   * the text doubled. Skip drawing this annotation's text so the editor's
+   * text (inside the selection box) is the only copy visible; once editing
+   * ends the annotation renders normally again.
+   */
+  hiddenTextId?: string | null
 }
 
 export interface DraftShape {
@@ -106,6 +115,10 @@ export function renderOverlay(ctx: CanvasRenderingContext2D, options: OverlayOpt
         drawImage(ctx, viewport, annotation, selected, options.resolveImage)
         break
       case 'text':
+        // While the inline editor is open for this annotation, its text is
+        // shown by the editor's textarea on top of the page; drawing it here
+        // too would render the text doubled.
+        if (options.hiddenTextId !== undefined && annotation.id === options.hiddenTextId) break
         drawText(ctx, viewport, annotation, selected, options.pageRotation ?? 0, dpr)
         break
       case 'stamp':
