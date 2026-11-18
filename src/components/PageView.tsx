@@ -246,9 +246,13 @@ export default function PageView({ page, index, scale, pending, onPlaced }: Page
       resolveImage: getImage,
       draft,
       searchRects,
+      // While a text annotation is being edited inline, its text is shown by
+      // the editor's textarea on top of the page. Hide it on the canvas so
+      // the text doesn't render doubled (once here, once in the textarea).
+      hiddenTextId: editing?.id ?? null,
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [viewport, overlayKey, dpr])
+  }, [viewport, overlayKey, dpr, editing])
 
   /* ---- pointer helpers ------------------------------------------ */
   const toUser = useCallback(
