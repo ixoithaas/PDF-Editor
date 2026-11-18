@@ -54,6 +54,10 @@ Built with Vite, React, TypeScript, Tailwind CSS, Zustand, PDF.js and pdf-lib.
 ### Privacy
 Everything happens in the browser. There is no server, no upload and no telemetry.
 
+## Live site
+
+<https://ixoithaas.github.io/PDF-Editor/>
+
 ## Getting started
 
 ```bash
@@ -74,6 +78,20 @@ Useful scripts:
 
 Click **"Open the sample PDF"** on the welcome screen to try the editor straight
 away.
+
+## Deployment
+
+Every push to `main` builds the app and publishes it to GitHub Pages at
+<https://ixoithaas.github.io/PDF-Editor/> (see
+`.github/workflows/deploy-pages.yml`).
+
+Because that is a *project* site served from a `/<repo>/` subpath, the build
+needs a matching `base`. The workflow sets `PAGES_BASE=/<repo>/`, which
+`vite.config.ts` applies to every emitted asset URL. Local dev and previews
+leave it at the default `/`, so nothing changes there.
+
+If you ever rename the repository or add a custom domain, update `PAGES_BASE`
+in the workflow — a custom domain at the root should drop it entirely.
 
 ## Keyboard shortcuts
 
