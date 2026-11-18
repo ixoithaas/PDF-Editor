@@ -1,7 +1,19 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
+/**
+ * Base URL for emitted assets.
+ *
+ * A GitHub Pages *project* site is served from https://<user>.github.io/<repo>/,
+ * so every asset URL has to carry that prefix or the browser requests
+ * https://<user>.github.io/assets/... and gets a 404.  The deploy workflow
+ * sets PAGES_BASE for that build; everywhere else (local dev, previews, a
+ * custom domain) the default "/" is correct.
+ */
+const base = process.env.PAGES_BASE ?? '/'
+
 export default defineConfig({
+  base,
   plugins: [react()],
   server: {
     host: '0.0.0.0',
