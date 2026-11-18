@@ -265,6 +265,13 @@ export default function PageView({ page, index, scale, pending, onPlaced }: Page
   /* ---- pointer handlers ----------------------------------------- */
   const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return
+    // The page surface is not focusable, so a click would otherwise move
+    // focus to <body>. That focus shift can close the text editor we are
+    // about to open (its onBlur would discard the empty box), leaving the
+    // user with nothing. Preventing the default keeps focus where the
+    // editor's programmatic focus() puts it. Safe for every tool: they drive
+    // their behaviour through pointer capture, not the default actions.
+    event.preventDefault()
     setActivePage(page.id)
     const point = toUser(event)
 
@@ -706,14 +713,17 @@ export default function PageView({ page, index, scale, pending, onPlaced }: Page
               const current = editingState
               setEditing(null)
               if (!commit) {
-                // Esc restores whatever the box held before editing began.
+                // Esc discards: restore whatever the box held, or drop a box
+                // the user created but never typed into.
                 if (current.initial) patchAnnotation(current.id, { text: current.initial })
                 else removeAnnotation(current.id)
                 return
               }
-              // Text was already written while typing; discard an empty box
-              // instead of leaving invisible clutter on the page.
-              if (!current.value.trim()) removeAnnotation(current.id)
+              // Committed by blur or Ctrl/⌘+Enter. The text was already
+              // written while typing, so just keep the box — even if empty.
+              // Removing an empty box here is what made the tool feel broken:
+              // any focus shift (e.g. the browser moving focus off the page
+              // surface) would fire blur and delete the box the user just made.
             }}
           />
         )}
@@ -969,7 +979,7 @@ function TextEditor({
         onPointerDown={(e) => e.stopPropagation()}
       />
       <div className="mt-1 w-fit whitespace-nowrap rounded bg-ink-900/90 px-1.5 py-0.5 text-[10px] font-medium text-white shadow dark:bg-white/90 dark:text-ink-900">
-        {value.trim() ? 'Click away to finish' : 'Click away to cancel'} · Esc to discard
+        Click away to finish · Esc to discard
       </div>
     </div>
   )
