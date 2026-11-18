@@ -908,6 +908,12 @@ function TextEditor({
   const size = annotation.fontSize * viewport.scale
   const width = Math.max(220, size * 9)
 
+  // The editor lives inside the page's `overflow-hidden` container, so keep
+  // it fully inside the page: otherwise a box placed near the top or right
+  // edge is clipped and looks like nothing happened.
+  const left = Math.min(px, Math.max(0, viewport.width - width))
+  const top = Math.max(py - size * 1.2, 0)
+
   useEffect(() => {
     ref.current?.focus()
   }, [])
@@ -921,7 +927,7 @@ function TextEditor({
   }, [value, size])
 
   return (
-    <div className="absolute z-20" style={{ left: px, top: py - size * 1.2 }}>
+    <div className="absolute z-20" style={{ left, top }}>
       <textarea
         ref={ref}
         className="text-editor-input"
@@ -939,7 +945,15 @@ function TextEditor({
         value={value}
         placeholder="Type here…"
         onChange={(e) => onChange(e.target.value)}
-        onBlur={() => onClose(true)}
+        // StrictMode mounts, then simulates an unmount + remount. Removing a
+        // focused element fires `blur`, which would otherwise commit the
+        // (still empty) box and delete the annotation we just created —
+        // leaving nothing on screen. Ignore a blur whose target has already
+        // left the document; a genuine click-away keeps the element connected.
+        onBlur={(event) => {
+          if (!event.target.isConnected) return
+          onClose(true)
+        }}
         onKeyDown={(e) => {
           e.stopPropagation()
           if (e.key === 'Escape') {
