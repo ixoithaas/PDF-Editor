@@ -105,7 +105,7 @@ in the workflow — a custom domain at the root should drop it entirely.
 | `Ctrl/⌘ + D` | Duplicate the current page |
 | `Ctrl/⌘ + wheel` | Zoom |
 | `Page Up` / `Page Down` | Previous / next page |
-| `V` `H` `T` `U` `S` `P` `E` `R` `O` `L` `A` | Select, pan, text, underline, strike-out, pen, eraser, rectangle, ellipse, line, arrow |
+| `V` `H` `T` `M` `U` `S` `P` `E` `R` `O` `L` `A` `I` `G` `B` | Select, pan, text, highlight, underline, strike-out, pen, eraser, rectangle, ellipse, line, arrow, image, signature, stamp |
 | `Delete` / `Backspace` | Remove the selected annotation |
 | `Escape` | Deselect / close search |
 | `?` | Shortcut reference |

@@ -463,7 +463,8 @@ function AnnotationProperties({ annotation }: { annotation: Annotation }) {
             <textarea
               className="input min-h-[5rem] resize-y text-xs"
               value={annotation.text}
-              onChange={(e) => updateAnnotation(annotation.id, { text: e.target.value })}
+              onFocus={() => beginHistory()}
+              onChange={(e) => patchAnnotation(annotation.id, { text: e.target.value })}
             />
           </div>
         )}
