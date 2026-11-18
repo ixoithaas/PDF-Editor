@@ -95,6 +95,21 @@ export default function Viewer() {
     if (Math.abs(next - zoom) > 0.0005) setZoom(Number(next.toFixed(4)), zoomMode)
   }, [zoomMode, size.width, size.height, maxWidth, maxHeight, zoom, setZoom])
 
+  /* ---- ctrl/⌘ + wheel zoom (needs a non-passive listener) ------- */
+  useEffect(() => {
+    const element = scrollRef.current
+    if (!element) return
+    const onWheel = (event: WheelEvent) => {
+      if (!event.ctrlKey && !event.metaKey) return
+      event.preventDefault()
+      const state = useEditor.getState()
+      const factor = event.deltaY > 0 ? 0.92 : 1.08
+      state.setZoom(Math.min(10, Math.max(0.1, state.zoom * factor)))
+    }
+    element.addEventListener('wheel', onWheel, { passive: false })
+    return () => element.removeEventListener('wheel', onWheel)
+  }, [])
+
   /* ---- scroll spy ------------------------------------------------ */
   const scrollToPage = useCallback((index: number) => {
     const element = scrollRef.current
@@ -340,13 +355,6 @@ export default function Viewer() {
         ref={scrollRef}
         data-scroll-container
         className="relative min-h-0 flex-1 overflow-auto scroll-thin"
-        onWheel={(event) => {
-          if (!event.ctrlKey && !event.metaKey) return
-          event.preventDefault()
-          const state = useEditor.getState()
-          const factor = event.deltaY > 0 ? 0.92 : 1.08
-          state.setZoom(Math.min(10, Math.max(0.1, state.zoom * factor)))
-        }}
       >
         <div
           className="mx-auto flex w-fit flex-col items-center"
