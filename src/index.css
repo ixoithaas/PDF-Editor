@@ -180,10 +180,10 @@ html.dark .pdf-page-shadow {
 }
 
 .text-editor-input {
-  /* Transparent box with a blue dashed border — no filled background, so the
-     page shows through while typing. */
-  @apply w-full resize-none rounded-lg border-2 border-dashed border-indigo-500 bg-transparent p-2 text-sm
-         outline-none ring-2 ring-indigo-500/20;
+  /* No visible box at all. The selection outline drawn around the annotation
+     is the only visible boundary; this textarea is an invisible typing
+     surface so the page and that outline show through unchanged. */
+  @apply w-full resize-none bg-transparent p-2 text-sm outline-none;
 }
 
 .dragging-page {
