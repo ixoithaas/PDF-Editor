@@ -223,6 +223,26 @@ export default function PageView({ page, index, scale, pending, onPlaced }: Page
     return key
   }, [viewport, rotation, selection, draft, pageAnnotations, searchRects, imageTick])
 
+  /*
+   * The text annotation whose canvas text is hidden while the inline editor
+   * is open. Derived from BOTH `editing` and the current `selection`: the
+   * editor only actually owns the text when it is bound to the selected
+   * annotation. If `editing` ever lingers after the editor closes (e.g. a
+   * commit path that didn't clear it), keying this off `editing` alone would
+   * keep the canvas skipping the text and make it vanish — even though the
+   * annotation still exists. Tying it to the selection keeps the text visible
+   * whenever the editor isn't genuinely open.
+   */
+  const hiddenTextId = editing && selection === editing.id ? editing.id : null
+
+  // Safety net: if the selection moves away from the annotation being edited
+  // (or clears) without the editor's own onClose having run, drop the stale
+  // editing state. Otherwise it would linger and re-open the editor the next
+  // time the annotation is selected, and keep its text hidden on the canvas.
+  useEffect(() => {
+    if (editing && selection !== editing.id) setEditing(null)
+  }, [editing, selection])
+
   /* ---- render the annotation overlay ---------------------------- */
   useEffect(() => {
     const canvas = overlayRef.current
@@ -249,10 +269,10 @@ export default function PageView({ page, index, scale, pending, onPlaced }: Page
       // While a text annotation is being edited inline, its text is shown by
       // the editor's textarea on top of the page. Hide it on the canvas so
       // the text doesn't render doubled (once here, once in the textarea).
-      hiddenTextId: editing?.id ?? null,
+      hiddenTextId,
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [viewport, overlayKey, dpr, editing])
+  }, [viewport, overlayKey, dpr, hiddenTextId])
 
   /* ---- pointer helpers ------------------------------------------ */
   const toUser = useCallback(
