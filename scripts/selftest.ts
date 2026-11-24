@@ -387,7 +387,18 @@ async function exportPipeline() {
     primarySourceId: sourceId,
     pages,
     annotations,
-    formValues: {},
+    formValues: { __typed_box: 'Detected box value' },
+    detectedFields: [{
+      id: 'detected-box',
+      name: '__typed_box',
+      type: 'text',
+      value: '',
+      readOnly: false,
+      required: false,
+      pageId: 'page-0',
+      rect: { x: 60, y: 520, width: 180, height: 24 },
+      detected: true,
+    }],
     meta: { title: 'Exported', author: 'Self test' },
   })
   check('plain export produced bytes', plain.bytes.length > 500)
@@ -397,6 +408,7 @@ async function exportPipeline() {
     const result = await tryLoad(plain.bytes)
     check('exported page count', result.pages === 3, `got ${result.pages}`)
     check('exported page 1 text', result.text.includes('Alpha page'), result.text)
+    check('detected printed-box value exported', result.text.includes('Detected box value'), result.text)
     const rotations = await pageRotations(plain.bytes)
     check(
       'page rotations applied',

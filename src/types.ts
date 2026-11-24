@@ -243,4 +243,6 @@ export interface FormField {
   pageId: string
   /** Position of the widget in absolute user space. */
   rect: Rect
+  /** True when this field was inferred from printed character boxes. */
+  detected?: boolean
 }

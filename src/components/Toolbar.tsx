@@ -20,6 +20,7 @@ import {
   Merge,
   Scissors,
   Info,
+  ScanSearch,
 } from 'lucide-react'
 import { useEditor } from '../lib/store'
 import { cn } from '../lib/utils'
@@ -130,6 +131,17 @@ export default function Toolbar() {
           e.target.value = ''
         }}
       />
+
+      {hasDoc && (
+        <button
+          className="btn-soft"
+          onClick={() => void useEditor.getState().detectFormBoxes()}
+          title="Detect printed character boxes in this PDF"
+        >
+          <ScanSearch className="h-4 w-4" />
+          <span className="hidden lg:inline">Detect boxes</span>
+        </button>
+      )}
 
       <div className="mx-1 h-6 w-px bg-ink-200 dark:bg-white/10" />
 
