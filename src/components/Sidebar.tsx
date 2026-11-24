@@ -9,6 +9,7 @@ import {
   Scissors,
   Layers,
   FileInput,
+  ScanSearch,
   FileText,
   type LucideIcon,
 } from 'lucide-react'
@@ -481,8 +482,15 @@ function FormList() {
         <FileInput className="h-8 w-8 text-ink-300 dark:text-ink-600" />
         <p className="text-sm font-medium">No form fields</p>
         <p className="text-xs text-ink-500 dark:text-ink-400">
-          This document does not contain interactive form fields.
+          No interactive fields found. You can scan printed character boxes and type into them here.
         </p>
+        <button
+          className="btn-primary mt-2"
+          onClick={() => void useEditor.getState().detectFormBoxes()}
+        >
+          <ScanSearch className="h-4 w-4" />
+          Detect boxes
+        </button>
       </div>
     )
   }
@@ -503,6 +511,11 @@ function FormList() {
                 <label className="truncate text-xs font-medium" title={field.name}>
                   {field.name}
                 </label>
+                {field.detected && (
+                  <span className="chip shrink-0 bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-300">
+                    printed boxes
+                  </span>
+                )}
                 {pageIndex >= 0 && (
                   <button
                     className="text-[10px] text-indigo-500 hover:underline"

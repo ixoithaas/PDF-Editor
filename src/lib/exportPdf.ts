@@ -17,6 +17,7 @@ import type {
   PageModel,
   Rect,
   SourceDoc,
+  FormField,
 } from '../types'
 import { FontRegistry, sanitizeText } from './fonts'
 import { encryptDocument } from './encryptPdf'
@@ -29,6 +30,8 @@ export interface ExportOptions {
   pages: PageModel[]
   annotations: Annotation[]
   formValues: Record<string, string>
+  /** Printed-cell fields inferred from a non-interactive form. */
+  detectedFields?: FormField[]
   meta?: Partial<DocumentMeta>
   /** Flatten interactive form fields into page content. */
   flattenForm?: boolean
@@ -195,7 +198,35 @@ export async function exportPdf(options: ExportOptions): Promise<ExportResult> {
     }
   }
 
-  /* ---- 6. Metadata ---------------------------------------------- */
+  /* ---- 6. Values typed into detected printed-cell fields -------- */
+  if (options.detectedFields?.length) {
+    const font = await doc.embedFont(StandardFonts.Helvetica)
+    for (const [index, model] of options.pages.entries()) {
+      const page = doc.getPage(index)
+      if (!page) continue
+      for (const field of options.detectedFields) {
+        if (field.pageId !== model.id) continue
+        const value = options.formValues[field.name]?.trim()
+        if (!value) continue
+        const inset = Math.max(1.5, Math.min(4, field.rect.height * 0.12))
+        const maxSize = Math.max(5, Math.min(12, (field.rect.height - inset * 2) * 0.72))
+        let size = maxSize
+        while (size > 4 && font.widthOfTextAtSize(value, size) > field.rect.width - inset * 2) {
+          size -= 0.25
+        }
+        page.drawText(value, {
+          x: field.rect.x + inset,
+          y: field.rect.y + Math.max(inset, (field.rect.height - size) / 2),
+          size,
+          font,
+          color: rgb(0.08, 0.1, 0.14),
+          maxWidth: Math.max(1, field.rect.width - inset * 2),
+        })
+      }
+    }
+  }
+
+  /* ---- 7. Metadata ---------------------------------------------- */
   const meta = options.meta
   if (meta) {
     if (meta.title !== undefined) doc.setTitle(meta.title)

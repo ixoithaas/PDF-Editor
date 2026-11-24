@@ -13,6 +13,7 @@ import { loadPdf, PasswordRequiredError, uid, type PDFJSProxy } from './pdf'
 import { exportPdf as runExport, type ExportOptions } from './exportPdf'
 import { getTextGeometry } from './textCache'
 import { searchItems } from './textGeometry'
+import { detectCharacterFields } from './detectBoxes'
 
 export type LeftPanel = 'pages' | 'annotations' | 'forms' | 'none'
 export type ZoomMode = 'custom' | 'width' | 'page'
@@ -149,6 +150,7 @@ export interface EditorActions {
   extractPages: (pageIds: string[]) => Promise<void>
   mergeFiles: (files: File[]) => Promise<void>
   setFormValue: (name: string, value: string) => void
+  detectFormBoxes: () => Promise<void>
   updateMeta: (patch: Partial<DocumentMeta>) => void
 
   undo: () => void
@@ -676,6 +678,7 @@ export const useEditor = create<EditorStore>()((set, get) => {
           pages: selected,
           annotations,
           formValues,
+          detectedFields: state.formFields.filter((field) => field.detected && set2.has(field.pageId)),
           meta: state.meta,
         })
         const blob = new Blob([result.bytes as BlobPart], { type: 'application/pdf' })
@@ -726,6 +729,29 @@ export const useEditor = create<EditorStore>()((set, get) => {
       }))
     },
 
+    async detectFormBoxes() {
+      const state = get()
+      if (!state.pages.length) return
+      set({ busy: 'Detecting printed form boxes…' })
+      try {
+        const detected = await detectCharacterFields(state.pages, state.pdfjsDocs)
+        const current = get()
+        const formFields = [...current.formFields.filter((field) => !field.detected), ...detected]
+        const formValues = { ...current.formValues }
+        detected.forEach((field) => { formValues[field.name] = '' })
+        set({ formFields, formValues, leftPanel: 'forms' })
+        if (detected.length) {
+          get().showToast(`Found ${detected.length} box field${detected.length === 1 ? '' : 's'}. Enter values in the Fields panel, then export.`, 'success')
+        } else {
+          get().showToast('No character-box rows found. This works best on clear, printed box forms.', 'info')
+        }
+      } catch (err) {
+        get().showToast((err as Error).message || 'Could not scan this PDF.', 'error')
+      } finally {
+        set({ busy: null })
+      }
+    },
+
     updateMeta(patch) {
       commit((state) => ({ meta: { ...state.meta, ...patch } }))
     },
@@ -772,6 +798,7 @@ export const useEditor = create<EditorStore>()((set, get) => {
           pages: state.pages,
           annotations: state.annotations,
           formValues: state.formValues,
+          detectedFields: state.formFields.filter((field) => field.detected),
           meta: state.meta,
           ...partial,
         })
@@ -798,6 +825,7 @@ export const useEditor = create<EditorStore>()((set, get) => {
           pages: state.pages,
           annotations: state.annotations,
           formValues: state.formValues,
+          detectedFields: state.formFields.filter((field) => field.detected),
           meta: state.meta,
         })
         const blob = new Blob([result.bytes as BlobPart], { type: 'application/pdf' })
@@ -828,6 +856,7 @@ export const useEditor = create<EditorStore>()((set, get) => {
             pages: state.pages,
             annotations: state.annotations,
             formValues: state.formValues,
+            detectedFields: state.formFields.filter((field) => field.detected),
             meta: state.meta,
             flattenForm: true,
           })
